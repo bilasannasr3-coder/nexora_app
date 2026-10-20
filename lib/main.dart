@@ -1,9 +1,12 @@
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
 import 'welcome_screen.dart';
 import 'package:nexora_app/home_screen.dart';
 import 'package:nexora_app/l10n/app_localizations.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +21,8 @@ class NexoraApp extends StatefulWidget {
 }
 
 class _NexoraAppState extends State<NexoraApp> {
-  Locale _locale = const Locale('en');
+  // اللغة الافتراضية هي العربية.
+  Locale _locale = const Locale('ar');
 
   ThemeMode _themeMode = ThemeMode.light;
 
@@ -48,6 +52,9 @@ class _NexoraAppState extends State<NexoraApp> {
   Widget build(BuildContext context) {
     final isDarkMode = _themeMode == ThemeMode.dark;
 
+    const lightBackground = Color(0xFFF7F8FC);
+    const darkBackground = Color(0xFF0B1020);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'NEXORA',
@@ -56,17 +63,44 @@ class _NexoraAppState extends State<NexoraApp> {
 
       theme: ThemeData(
         brightness: Brightness.light,
-        scaffoldBackgroundColor:
-        const Color(0xFFF7F8FC),
+        scaffoldBackgroundColor: lightBackground,
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: lightBackground,
+          foregroundColor: Color(0xFF171A2C),
+          systemOverlayStyle: SystemUiOverlayStyle.dark,
+        ),
       ),
 
       darkTheme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor:
-        const Color(0xFF0B1020),
+        scaffoldBackgroundColor: darkBackground,
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: darkBackground,
+          foregroundColor: Colors.white,
+          systemOverlayStyle: SystemUiOverlayStyle.light,
+        ),
       ),
+
+      // ضبط ألوان شريط الحالة وشريط التنقل في الهاتف.
+      builder: (context, child) {
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness:
+            isDarkMode ? Brightness.light : Brightness.dark,
+            statusBarBrightness:
+            isDarkMode ? Brightness.dark : Brightness.light,
+            systemNavigationBarColor:
+            isDarkMode ? darkBackground : lightBackground,
+            systemNavigationBarIconBrightness:
+            isDarkMode ? Brightness.light : Brightness.dark,
+            systemNavigationBarDividerColor: Colors.transparent,
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
 
       localizationsDelegates: const [
         AppLocalizations.delegate,
@@ -76,12 +110,13 @@ class _NexoraAppState extends State<NexoraApp> {
       ],
 
       supportedLocales: const [
-        Locale('en'),
         Locale('ar'),
+        Locale('en'),
       ],
 
       locale: _locale,
 
+      // الصفحة الرئيسية بعد تسجيل الدخول أو حسب التدفق الحالي للمشروع.
       home: HomeScreen(
         isDarkMode: isDarkMode,
         onToggleTheme: toggleTheme,
@@ -92,7 +127,7 @@ class _NexoraAppState extends State<NexoraApp> {
 }
 
 // =========================================================
-// SPLASH
+// NEXORA SPLASH SCREEN
 // =========================================================
 
 class NexoraSplash extends StatefulWidget {
@@ -110,21 +145,20 @@ class NexoraSplash extends StatefulWidget {
   });
 
   @override
-  State<NexoraSplash> createState() =>
-      _NexoraSplashState();
+  State<NexoraSplash> createState() => _NexoraSplashState();
 }
 
 class _NexoraSplashState extends State<NexoraSplash> {
-  late VideoPlayerController _videoController;
+  late final VideoPlayerController _videoController;
+  bool _hasNavigated = false;
 
   @override
   void initState() {
     super.initState();
 
-    _videoController =
-        VideoPlayerController.asset(
-          'assets/videos/nexora_intro.mp4',
-        );
+    _videoController = VideoPlayerController.asset(
+      'assets/videos/nexora_intro.mp4',
+    );
 
     _initializeVideo();
   }
@@ -135,75 +169,72 @@ class _NexoraSplashState extends State<NexoraSplash> {
 
       if (!mounted) return;
 
+      await _videoController.setLooping(false);
+
+      _videoController.addListener(_checkVideoFinished);
+
       setState(() {});
 
-      await _videoController.setLooping(false);
       await _videoController.play();
-
-      _videoController.addListener(() {
-        if (!_videoController.value.isInitialized) {
-          return;
-        }
-
-        final position =
-            _videoController.value.position;
-        final duration =
-            _videoController.value.duration;
-
-        if (position >= duration &&
-            !_videoController.value.isPlaying &&
-            mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => WelcomeScreen(
-                onLanguageChanged:
-                widget.onLanguageChanged,
-              ),
-            ),
-          );
-        }
-      });
     } catch (e) {
-      debugPrint(
-        'NEXORA Video Error: $e',
+      debugPrint('NEXORA Video Error: $e');
+    }
+  }
+
+  void _checkVideoFinished() {
+    if (!mounted || _hasNavigated) return;
+
+    final value = _videoController.value;
+
+    if (value.isInitialized &&
+        value.duration > Duration.zero &&
+        value.position >= value.duration &&
+        !value.isPlaying) {
+      _hasNavigated = true;
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => WelcomeScreen(
+            onLanguageChanged: widget.onLanguageChanged,
+          ),
+        ),
       );
     }
   }
 
   @override
   void dispose() {
+    _videoController.removeListener(_checkVideoFinished);
     _videoController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor:
-      const Color(0xFF02030A),
-
-      body: Center(
-        child: _videoController.value.isInitialized
-            ? SizedBox.expand(
-          child: FittedBox(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: const Color(0xFF02030A),
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFF02030A),
+        body: SizedBox.expand(
+          child: _videoController.value.isInitialized
+              ? FittedBox(
             fit: BoxFit.cover,
             child: SizedBox(
-              width: _videoController
-                  .value
-                  .size
-                  .width,
-              height: _videoController
-                  .value
-                  .size
-                  .height,
-              child: VideoPlayer(
-                _videoController,
-              ),
+              width: _videoController.value.size.width,
+              height: _videoController.value.size.height,
+              child: VideoPlayer(_videoController),
+            ),
+          )
+              : const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF4A6CF7),
             ),
           ),
-        )
-            : const CircularProgressIndicator(),
+        ),
       ),
     );
   }
