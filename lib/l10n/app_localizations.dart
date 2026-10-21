@@ -270,7 +270,7 @@ static const Map<String, String> _ar = {
 'راجع نتائجك',
 
 'academicPath':
-'المسار الدراسي',
+'المسار الاكاديمي',
 
 'recommendedPath':
 'مسارك المقترح',

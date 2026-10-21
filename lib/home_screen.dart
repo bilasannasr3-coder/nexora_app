@@ -4,6 +4,8 @@ import 'package:nexora_app/l10n/app_localizations.dart';
 import 'package:nexora_app/tests_screen.dart';
 import 'package:nexora_app/grade_entry_screen.dart';
 import 'package:nexora_app/results_screen.dart';
+import 'package:nexora_app/academic_path_screen.dart';
+import 'package:nexora_app/account_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -26,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Keeps the entered averages in memory while the app session is active.
   GradeEntryResult? _gradeEntryResult;
+  String? _profileImagePath;
 
 // NEXORA COLORS
   static const Color nexoraBlue = Color(0xFF4A6CF7);
@@ -113,6 +116,17 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _openAcademicPath() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AcademicPathScreen(
+          isDarkMode: widget.isDarkMode,
+          gradeEntryResult: _gradeEntryResult,
+        ),
+      ),
+    );
+  }
+
   // CURRENT PAGE
 
   Widget _buildCurrentPage(
@@ -130,9 +144,16 @@ class _HomeScreenState extends State<HomeScreen> {
           gradeEntryResult: _gradeEntryResult,
         );
       case 3:
-        return _buildPlaceholder(
-          local.account,
-          local.pageComingSoon,
+        return AccountScreen(
+          isDarkMode: widget.isDarkMode,
+          onToggleTheme: widget.onToggleTheme,
+          onToggleLanguage: widget.onToggleLanguage,
+          onOpenGrades: _openGradeEntry,
+          gradeEntryResult: _gradeEntryResult,
+          profileImagePath: _profileImagePath,
+          onProfileImageChanged: (path) {
+            setState(() => _profileImagePath = path);
+          },
         );
       default:
         return _buildHome(local, isArabic);
@@ -602,7 +623,7 @@ class _HomeScreenState extends State<HomeScreen> {
           lightColor: const Color(0xFFEAFBF9),
           darkColor: const Color(0xFF173E3D),
           isDark: isDark,
-          onTap: () {},
+          onTap: _openAcademicPath,
         ),
         _buildJourneyCard(
           icon: Icons.school_outlined,
