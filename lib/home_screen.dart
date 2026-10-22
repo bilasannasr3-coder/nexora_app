@@ -6,6 +6,7 @@ import 'package:nexora_app/grade_entry_screen.dart';
 import 'package:nexora_app/results_screen.dart';
 import 'package:nexora_app/academic_path_screen.dart';
 import 'package:nexora_app/account_screen.dart';
+import 'package:nexora_app/dashboard_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -144,6 +145,15 @@ class _HomeScreenState extends State<HomeScreen> {
           gradeEntryResult: _gradeEntryResult,
         );
       case 3:
+        return DashboardScreen(
+          isDarkMode: widget.isDarkMode,
+          isArabic: isArabic,
+          onOpenResults: () => setState(() => _currentIndex = 2),
+          onOpenTests: () => setState(() => _currentIndex = 1),
+          onOpenGrades: _openGradeEntry,
+          onOpenAcademicPath: _openAcademicPath,
+        );
+      case 4:
         return AccountScreen(
           isDarkMode: widget.isDarkMode,
           onToggleTheme: widget.onToggleTheme,
@@ -837,6 +847,19 @@ class _HomeScreenState extends State<HomeScreen> {
               color: nexoraPurple,
             ),
             label: local.results,
+          ),
+          NavigationDestination(
+            icon: Icon(
+              Icons.dashboard_outlined,
+              color: isDark ? darkSoftText : lightSoftText,
+            ),
+            selectedIcon: const Icon(
+              Icons.dashboard_rounded,
+              color: nexoraPurple,
+            ),
+            label: Localizations.localeOf(context).languageCode == 'ar'
+                ? 'لوحتي'
+                : 'Dashboard',
           ),
           NavigationDestination(
             icon: Icon(
